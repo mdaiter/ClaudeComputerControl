@@ -1,5 +1,24 @@
 import Combine
 
+enum ExplorerSearchMode: String {
+    case keyword
+    case llm
+
+    var displayName: String {
+        switch self {
+        case .keyword: return "Keyword"
+        case .llm: return "LLM"
+        }
+    }
+
+    var placeholder: String {
+        switch self {
+        case .keyword: return "search keywords"
+        case .llm: return "describe the API you're looking for"
+        }
+    }
+}
+
 final class ExplorerViewModel: ObservableObject {
     let catalog: APICatalog
 
@@ -8,36 +27,110 @@ final class ExplorerViewModel: ObservableObject {
     @Published var generatedSample: GeneratedSample?
     @Published var isGeneratingSample: Bool = false
     @Published var generationError: String?
+    @Published var searchMode: ExplorerSearchMode = .keyword
+    @Published var isLLMSearching: Bool = false
+    @Published var llmSearchError: String?
     @Published private var windowStart: Int = 0
-    @Published var visibleCount: Int
+
+    private var visibleCount: Int
+    private var llmResults: [APIEntry] = []
+    private var llmSearchAvailable: Bool = false
+    private var llmSearchHandler: ((String) -> Void)?
 
     init(catalog: APICatalog, visibleCount: Int = 30) {
         self.catalog = catalog
         self.visibleCount = max(visibleCount, 1)
     }
 
-    private var filteredAPIs: [APIEntry] {
+    private var keywordResults: [APIEntry] {
         if searchQuery.isEmpty {
             return catalog.allAPIs
         }
         return catalog.search(query: searchQuery)
     }
 
+    private var currentResults: [APIEntry] {
+        switch searchMode {
+        case .keyword:
+            return keywordResults
+        case .llm:
+            return llmResults
+        }
+    }
+
     var visibleAPIs: [APIEntry] {
-        let apis = filteredAPIs
+        let apis = currentResults
         guard !apis.isEmpty else { return [] }
         let start = clampedWindowStart(for: apis.count)
         let end = min(start + visibleCount, apis.count)
         return Array(apis[start..<end])
     }
 
-    func updateSearch(_ query: String) {
-        searchQuery = query
-        windowStart = 0
-        if let first = filteredAPIs.first {
-            selectAPI(first)
-        } else {
-            selectAPI(nil)
+    var hasLLMResults: Bool { !llmResults.isEmpty }
+
+    func configureLLMSearch(available: Bool, handler: ((String) -> Void)?) {
+        llmSearchAvailable = available
+        llmSearchHandler = handler
+        if !available && searchMode == .llm {
+            searchMode = .keyword
+            llmResults = []
+            llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY)."
+        }
+    }
+
+    func submitSearch(_ query: String) {
+        searchQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch searchMode {
+        case .keyword:
+            windowStart = 0
+            if let first = keywordResults.first {
+                selectAPI(first)
+            } else {
+                selectAPI(nil)
+            }
+        case .llm:
+            guard llmSearchAvailable else {
+                llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY)."
+                return
+            }
+            guard !searchQuery.isEmpty else {
+                llmResults = []
+                llmSearchError = "Enter a query before running LLM search."
+                isLLMSearching = false
+                selectAPI(nil)
+                return
+            }
+            llmResults = []
+            llmSearchError = nil
+            isLLMSearching = true
+            windowStart = 0
+            llmSearchHandler?(searchQuery)
+        }
+    }
+
+    func toggleSearchMode() {
+        switch searchMode {
+        case .keyword:
+            guard llmSearchAvailable else {
+                llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY)."
+                return
+            }
+            searchMode = .llm
+            llmResults = []
+            llmSearchError = nil
+            selectedAPI = nil
+            windowStart = 0
+        case .llm:
+            searchMode = .keyword
+            isLLMSearching = false
+            llmSearchError = nil
+            llmResults = []
+            windowStart = 0
+            if let first = keywordResults.first {
+                selectAPI(first)
+            } else {
+                selectAPI(nil)
+            }
         }
     }
 
@@ -49,14 +142,14 @@ final class ExplorerViewModel: ObservableObject {
             isGeneratingSample = false
         }
         guard let api else { return }
-        let apis = filteredAPIs
+        let apis = currentResults
         guard let index = apis.firstIndex(where: { $0.id == api.id }) else { return }
         ensureSelectionVisible(index: index, totalCount: apis.count)
     }
 
     @discardableResult
     func moveSelection(by offset: Int) -> Bool {
-        let apis = filteredAPIs
+        let apis = currentResults
         guard !apis.isEmpty else { return false }
 
         var targetIndex: Int
@@ -85,6 +178,25 @@ final class ExplorerViewModel: ObservableObject {
     func failSampleRequest(message: String) {
         isGeneratingSample = false
         generationError = message
+    }
+
+    func handleLLMSearchResults(_ results: [APIEntry]) {
+        isLLMSearching = false
+        windowStart = 0
+        llmResults = results
+        if let first = results.first {
+            selectAPI(first)
+        } else {
+            selectAPI(nil)
+        }
+    }
+
+    func handleLLMSearchFailure(_ message: String) {
+        isLLMSearching = false
+        windowStart = 0
+        llmSearchError = message
+        llmResults = []
+        selectAPI(nil)
     }
 
     private func ensureSelectionVisible(index: Int, totalCount: Int) {

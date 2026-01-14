@@ -7,14 +7,21 @@ public final class ExplorerApp {
     private let catalog: APICatalog
     private let viewModel: ExplorerViewModel
     private let sampleGenerator: SampleCallGenerator?
+    private let searchAgent: LLMSearchAgent?
 
-    public init(catalog: APICatalog, sampleGenerator: SampleCallGenerator? = nil) {
+    public init(catalog: APICatalog, sampleGenerator: SampleCallGenerator? = nil, searchAgent: LLMSearchAgent? = nil) {
         self.catalog = catalog
         self.viewModel = ExplorerViewModel(catalog: catalog)
+        self.sampleGenerator = sampleGenerator
+        self.searchAgent = searchAgent
+
         if let first = viewModel.visibleAPIs.first {
             self.viewModel.selectAPI(first)
         }
-        self.sampleGenerator = sampleGenerator
+
+        viewModel.configureLLMSearch(available: searchAgent != nil) { [weak self] query in
+            self?.performLLMSearch(query: query)
+        }
     }
 
     /// Runs the interactive TUI explorer.
@@ -72,6 +79,10 @@ public final class ExplorerApp {
     }
 
     private func handleKeyPress(_ char: Character) -> Bool {
+        if char == "m" || char == "M" {
+            viewModel.toggleSearchMode()
+            return true
+        }
         guard char == "e" || char == "E" else {
             return false
         }
@@ -99,5 +110,26 @@ public final class ExplorerApp {
             }
         }
         return true
+    }
+
+    private func performLLMSearch(query: String) {
+        guard let searchAgent else {
+            viewModel.handleLLMSearchFailure("LLM search unavailable.")
+            return
+        }
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let results = try await searchAgent.search(query: query, in: catalog)
+                await MainActor.run {
+                    self.viewModel.handleLLMSearchResults(results)
+                }
+            } catch {
+                await MainActor.run {
+                    self.viewModel.handleLLMSearchFailure(error.localizedDescription)
+                }
+            }
+        }
     }
 }

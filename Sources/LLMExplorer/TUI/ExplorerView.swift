@@ -40,30 +40,41 @@ struct ExplorerView: View {
             HStack {
                 Text("/")
                     .foregroundColor(.gray)
-                TextField(placeholder: "search") { query in
-                    viewModel.updateSearch(query)
+                TextField(placeholder: viewModel.searchMode.placeholder) { query in
+                    viewModel.submitSearch(query)
+                }
+                Button(action: viewModel.toggleSearchMode) {
+                    Text(viewModel.searchMode.displayName)
+                        .foregroundColor(viewModel.searchMode == .keyword ? .green : .magenta)
                 }
             }
-            ForEach(viewModel.visibleAPIs) { api in
-                Button(
-                    action: { viewModel.selectAPI(api) },
-                    hover: { viewModel.selectAPI(api) }
-                ) {
-                    let isSelected = viewModel.selectedAPI?.id == api.id
-                    HStack {
-                        Text(isSelected ? "▸" : " ")
-                            .foregroundColor(.cyan)
-                        Text("[\(api.certainty.score)]")
-                            .foregroundColor(colorForScore(api.certainty.score))
-                        if isSelected {
-                            Text(api.name)
-                                .bold()
-                                .foregroundColor(.white)
-                        } else {
-                            Text(api.name)
+            searchStatus
+            if viewModel.visibleAPIs.isEmpty {
+                Text(emptyStateMessage)
+                    .foregroundColor(.gray)
+                    .padding(.vertical, 1)
+            } else {
+                ForEach(viewModel.visibleAPIs) { api in
+                    Button(
+                        action: { viewModel.selectAPI(api) },
+                        hover: { viewModel.selectAPI(api) }
+                    ) {
+                        let isSelected = viewModel.selectedAPI?.id == api.id
+                        HStack {
+                            Text(isSelected ? "▸" : " ")
+                                .foregroundColor(.cyan)
+                            Text("[\(api.certainty.score)]")
+                                .foregroundColor(colorForScore(api.certainty.score))
+                            if isSelected {
+                                Text(api.name)
+                                    .bold()
+                                    .foregroundColor(.white)
+                            } else {
+                                Text(api.name)
+                            }
                         }
+                        .padding(.horizontal, 1)
                     }
-                    .padding(.horizontal, 1)
                 }
             }
         }
@@ -123,10 +134,52 @@ struct ExplorerView: View {
         HStack {
             Text("[up/down] Navigate")
             Text("[/] Search")
+            Text("[m] Toggle search mode")
             Text("[e] Example")
             Text("[Ctrl+D] Quit")
         }
         .foregroundColor(.gray)
+    }
+
+    private var searchStatus: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            switch viewModel.searchMode {
+            case .keyword:
+                Text("Keyword search (press Return to filter)")
+                    .foregroundColor(.gray)
+            case .llm:
+                if viewModel.isLLMSearching {
+                    Text("LLM search in progress...")
+                        .foregroundColor(.cyan)
+                } else if let error = viewModel.llmSearchError {
+                    Text(error)
+                        .foregroundColor(.red)
+                } else if viewModel.hasLLMResults {
+                    Text("LLM search results (\(viewModel.visibleAPIs.count) shown)")
+                        .foregroundColor(.gray)
+                } else {
+                    Text("Describe what you need and press Return to ask the LLM.")
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+    }
+
+    private var emptyStateMessage: String {
+        switch viewModel.searchMode {
+        case .keyword:
+            return viewModel.searchQuery.isEmpty ? "No APIs available." : "No APIs matched \"\(viewModel.searchQuery)\"."
+        case .llm:
+            if viewModel.searchQuery.isEmpty {
+                return "Enter a description to run LLM search."
+            } else if viewModel.isLLMSearching {
+                return "Searching..."
+            } else if let error = viewModel.llmSearchError {
+                return error
+            } else {
+                return "LLM did not find relevant APIs."
+            }
+        }
     }
 
     private func colorForScore(_ score: Int) -> Color {

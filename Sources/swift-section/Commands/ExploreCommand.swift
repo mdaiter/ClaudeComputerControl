@@ -73,15 +73,25 @@ struct ExploreCommand: AsyncParsableCommand {
             print("Starting interactive explorer...")
             print("(Note: TUI requires terminal with curses support)")
 
-            var sampleGenerator: SampleCallGenerator?
+            var llmClient: ClaudeLLMClient?
             do {
-                let client = try ClaudeLLMClient(model: model.model)
-                sampleGenerator = SampleCallGenerator(client: client)
+                llmClient = try ClaudeLLMClient(model: model.model)
             } catch {
-                print("LLM sample generation disabled: \(error.localizedDescription)")
+                print("LLM features disabled: \(error.localizedDescription)")
             }
 
-            let app = await ExplorerApp(catalog: catalog, sampleGenerator: sampleGenerator)
+            var sampleGenerator: SampleCallGenerator?
+            var searchAgent: LLMSearchAgent?
+            if let client = llmClient {
+                sampleGenerator = SampleCallGenerator(client: client)
+                searchAgent = LLMSearchAgent(client: client)
+            }
+
+            let app = await ExplorerApp(
+                catalog: catalog,
+                sampleGenerator: sampleGenerator,
+                searchAgent: searchAgent
+            )
             await app.run()
         }
     }
