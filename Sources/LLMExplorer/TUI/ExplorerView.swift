@@ -40,7 +40,10 @@ struct ExplorerView: View {
             HStack {
                 Text("/")
                     .foregroundColor(.gray)
-                TextField(placeholder: viewModel.searchMode.placeholder) { query in
+                TextField(
+                    placeholder: viewModel.searchMode.placeholder,
+                    onFocusChange: { viewModel.setSearchFieldFocus($0) }
+                ) { query in
                     viewModel.submitSearch(query)
                 }
                 Button(action: viewModel.toggleSearchMode) {
@@ -134,8 +137,8 @@ struct ExplorerView: View {
         HStack {
             Text("[up/down] Navigate")
             Text("[/] Search")
-            Text("[m] Toggle search mode")
-            Text("[e] Example")
+            Text("[Ctrl+L] Toggle mode")
+            Text("[Ctrl+E] Example")
             Text("[Ctrl+D] Quit")
         }
         .foregroundColor(.gray)

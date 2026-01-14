@@ -31,6 +31,7 @@ final class ExplorerViewModel: ObservableObject {
     @Published var isLLMSearching: Bool = false
     @Published var llmSearchError: String?
     @Published private var windowStart: Int = 0
+    @Published var isSearchFieldFocused: Bool = false
 
     private var visibleCount: Int
     private var llmResults: [APIEntry] = []
@@ -132,6 +133,10 @@ final class ExplorerViewModel: ObservableObject {
                 selectAPI(nil)
             }
         }
+    }
+
+    func setSearchFieldFocus(_ focused: Bool) {
+        isSearchFieldFocused = focused
     }
 
     func selectAPI(_ api: APIEntry?) {

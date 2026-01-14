@@ -4,6 +4,11 @@ import SwiftTUI
 /// Main application for exploring Swift APIs in binaries.
 @MainActor
 public final class ExplorerApp {
+    private enum ControlKeys {
+        static let toggleSearch: Character = "\u{0c}" // Ctrl+L
+        static let example: Character = "\u{05}" // Ctrl+E
+    }
+
     private let catalog: APICatalog
     private let viewModel: ExplorerViewModel
     private let sampleGenerator: SampleCallGenerator?
@@ -79,37 +84,18 @@ public final class ExplorerApp {
     }
 
     private func handleKeyPress(_ char: Character) -> Bool {
-        if char == "m" || char == "M" {
+        if char == ControlKeys.toggleSearch {
             viewModel.toggleSearchMode()
             return true
         }
-        guard char == "e" || char == "E" else {
+        if char == ControlKeys.example {
+            handleExampleHotkey()
+            return true
+        }
+        if viewModel.isSearchFieldFocused {
             return false
         }
-        guard let api = viewModel.selectedAPI else {
-            viewModel.failSampleRequest(message: "Select an API first")
-            return true
-        }
-        guard let generator = sampleGenerator else {
-            viewModel.failSampleRequest(message: "LLM unavailable (set ANTHROPIC_API_KEY)")
-            return true
-        }
-
-        viewModel.beginSampleRequest()
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                let sample = try await generator.generateSample(for: api, context: catalog)
-                await MainActor.run {
-                    self.viewModel.finishSampleRequest(with: sample)
-                }
-            } catch {
-                await MainActor.run {
-                    self.viewModel.failSampleRequest(message: error.localizedDescription)
-                }
-            }
-        }
-        return true
+        return false
     }
 
     private func performLLMSearch(query: String) {
@@ -128,6 +114,32 @@ public final class ExplorerApp {
             } catch {
                 await MainActor.run {
                     self.viewModel.handleLLMSearchFailure(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func handleExampleHotkey() {
+        guard let api = viewModel.selectedAPI else {
+            viewModel.failSampleRequest(message: "Select an API first")
+            return
+        }
+        guard let generator = sampleGenerator else {
+            viewModel.failSampleRequest(message: "LLM unavailable (set ANTHROPIC_API_KEY)")
+            return
+        }
+
+        viewModel.beginSampleRequest()
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let sample = try await generator.generateSample(for: api, context: catalog)
+                await MainActor.run {
+                    self.viewModel.finishSampleRequest(with: sample)
+                }
+            } catch {
+                await MainActor.run {
+                    self.viewModel.failSampleRequest(message: error.localizedDescription)
                 }
             }
         }

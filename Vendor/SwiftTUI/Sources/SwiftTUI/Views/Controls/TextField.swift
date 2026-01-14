@@ -3,11 +3,17 @@ import Foundation
 public struct TextField: View, PrimitiveView {
     public let placeholder: String?
     public let action: (String) -> Void
+    public let onFocusChange: ((Bool) -> Void)?
 
     @Environment(\.placeholderColor) private var placeholderColor: Color
 
-    public init(placeholder: String? = nil, action: @escaping (String) -> Void) {
+    public init(
+        placeholder: String? = nil,
+        onFocusChange: ((Bool) -> Void)? = nil,
+        action: @escaping (String) -> Void
+    ) {
         self.placeholder = placeholder
+        self.onFocusChange = onFocusChange
         self.action = action
     }
 
@@ -15,13 +21,22 @@ public struct TextField: View, PrimitiveView {
 
     func buildNode(_ node: Node) {
         setupEnvironmentProperties(node: node)
-        node.control = TextFieldControl(placeholder: placeholder ?? "", placeholderColor: placeholderColor, action: action)
+        node.control = TextFieldControl(
+            placeholder: placeholder ?? "",
+            placeholderColor: placeholderColor,
+            action: action,
+            onFocusChange: onFocusChange
+        )
     }
 
     func updateNode(_ node: Node) {
         setupEnvironmentProperties(node: node)
         node.view = self
-        (node.control as! TextFieldControl).action = action
+        let control = node.control as! TextFieldControl
+        control.placeholder = placeholder ?? ""
+        control.placeholderColor = placeholderColor
+        control.action = action
+        control.onFocusChange = onFocusChange
     }
 
     private class TextFieldControl: Control {
@@ -31,10 +46,18 @@ public struct TextField: View, PrimitiveView {
 
         var text: String = ""
 
-        init(placeholder: String, placeholderColor: Color, action: @escaping (String) -> Void) {
+        var onFocusChange: ((Bool) -> Void)?
+
+        init(
+            placeholder: String,
+            placeholderColor: Color,
+            action: @escaping (String) -> Void,
+            onFocusChange: ((Bool) -> Void)?
+        ) {
             self.placeholder = placeholder
             self.placeholderColor = placeholderColor
             self.action = action
+            self.onFocusChange = onFocusChange
         }
 
         override func size(proposedSize: Size) -> Size {
@@ -84,11 +107,13 @@ public struct TextField: View, PrimitiveView {
 
         override func becomeFirstResponder() {
             super.becomeFirstResponder()
+            onFocusChange?(true)
             layer.invalidate()
         }
 
         override func resignFirstResponder() {
             super.resignFirstResponder()
+            onFocusChange?(false)
             layer.invalidate()
         }
     }
