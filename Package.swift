@@ -325,11 +325,24 @@ extension Target {
         ]
     )
 
+    static let LLMExplorer = Target.target(
+        name: "LLMExplorer",
+        dependencies: [
+            .MachOKit,
+            .target(.MachOSwiftSection),
+            .target(.SwiftInterface),
+            .target(.SwiftDump),
+            .target(.Demangling),
+            .target(.Utilities),
+        ]
+    )
+
     static let swift_section = Target.executableTarget(
         name: "swift-section",
         dependencies: [
             .target(.SwiftDump),
             .target(.SwiftInterface),
+            .target(.LLMExplorer),
             .product(name: "Rainbow", package: "Rainbow"),
             .product(name: "ArgumentParser", package: "swift-argument-parser"),
         ]
@@ -417,12 +430,13 @@ extension Target {
 
 let package = Package(
     name: "MachOSwiftSection",
-    platforms: [.macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .visionOS(.v1)],
+    platforms: [.macOS(.v13), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .visionOS(.v1)],
     products: [
         .library(.MachOSwiftSection),
         .library(.SwiftDump),
         .library(.SwiftInterface),
         .library(.TypeIndexing),
+        .library(.LLMExplorer),
         .executable(.swift_section),
     ],
     dependencies: dependencies,
@@ -444,6 +458,7 @@ let package = Package(
         .SwiftIndex,
         .SwiftInterface,
         .TypeIndexing,
+        .LLMExplorer,
         .swift_section,
         .MachOMacros,
         .MachOTestingSupport,
