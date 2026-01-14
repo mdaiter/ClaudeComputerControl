@@ -11,8 +11,33 @@ public final class ExplorerApp {
     }
 
     /// Runs the interactive TUI explorer.
-    public func run() {
-        Application(rootView: ExplorerView(catalog: catalog)).start()
+    public func run() async {
+        #if os(macOS)
+        // Swift Concurrency already owns the dispatch main loop, so we run
+        // SwiftTUI in cooperative mode and let the host keep the process alive.
+        let runLoopType: Application.RunLoopType = .cooperative
+        #else
+        let runLoopType: Application.RunLoopType = .dispatch
+        #endif
+
+        let app = Application(
+            rootView: ExplorerView(catalog: catalog),
+            runLoopType: runLoopType
+        )
+
+        if runLoopType == .cooperative {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                var resumed = false
+                app.onStop = {
+                    guard !resumed else { return }
+                    resumed = true
+                    continuation.resume()
+                }
+                app.start()
+            }
+        } else {
+            app.start()
+        }
     }
 
     /// Exports the catalog to a JSON file.

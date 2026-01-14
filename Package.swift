@@ -3,6 +3,7 @@
 
 @preconcurrency import PackageDescription
 import CompilerPluginSupport
+import class Foundation.FileManager
 
 func envEnable(_ key: String, default defaultValue: Bool = false) -> Bool {
     guard let value = Context.environment[key] else {
@@ -51,7 +52,6 @@ var dependencies: [Package.Dependency] = [
     .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.4"),
     .package(url: "https://github.com/MxIris-Reverse-Engineering/DyldPrivate", branch: "main"),
     .package(url: "https://github.com/migueldeicaza/TermKit", branch: "main"),
-    .package(url: "https://github.com/rensbreur/SwiftTUI", branch: "main"),
 ]
 
 extension Package.Dependency {
@@ -474,6 +474,11 @@ let package = Package(
 )
 
 if useSwiftTUI {
-    package.dependencies.append(.package(url: "https://github.com/rensbreur/SwiftTUI", branch: "main"))
+    let swiftTUILocalPath = "Vendor/SwiftTUI"
+    if FileManager.default.fileExists(atPath: swiftTUILocalPath) {
+        package.dependencies.append(.package(path: swiftTUILocalPath))
+    } else {
+        package.dependencies.append(.package(url: "https://github.com/rensbreur/SwiftTUI", branch: "main"))
+    }
     Target.swift_section.dependencies.append(.product(name: "SwiftTUI", package: "SwiftTUI"))
 }
