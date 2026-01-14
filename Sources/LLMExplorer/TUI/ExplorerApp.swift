@@ -11,6 +11,9 @@ public final class ExplorerApp {
     public init(catalog: APICatalog, sampleGenerator: SampleCallGenerator? = nil) {
         self.catalog = catalog
         self.viewModel = ExplorerViewModel(catalog: catalog)
+        if let first = viewModel.visibleAPIs.first {
+            self.viewModel.selectAPI(first)
+        }
         self.sampleGenerator = sampleGenerator
     }
 
@@ -28,6 +31,9 @@ public final class ExplorerApp {
             rootView: ExplorerView(viewModel: viewModel),
             runLoopType: runLoopType
         )
+        app.onNavigationKey = { [weak self] key in
+            self?.handleNavigationKey(key) ?? false
+        }
         app.onKeyPress = { [weak self] char in
             guard let self else { return false }
             return self.handleKeyPress(char)
@@ -52,6 +58,17 @@ public final class ExplorerApp {
     public func export(to path: String) throws {
         let json = try catalog.toJSONString()
         try json.write(toFile: path, atomically: true, encoding: .utf8)
+    }
+
+    private func handleNavigationKey(_ key: Application.NavigationKey) -> Bool {
+        switch key {
+        case .down:
+            return viewModel.moveSelection(by: 1)
+        case .up:
+            return viewModel.moveSelection(by: -1)
+        default:
+            return false
+        }
     }
 
     private func handleKeyPress(_ char: Character) -> Bool {

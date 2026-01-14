@@ -12,6 +12,7 @@ public class Application {
 
     public var onStop: (() -> Void)?
     public var onKeyPress: ((Character) -> Bool)?
+    public var onNavigationKey: ((NavigationKey) -> Bool)?
 
     private let runLoopType: RunLoopType
 
@@ -42,6 +43,13 @@ public class Application {
     }
 
     var stdInSource: DispatchSourceRead?
+
+    public enum NavigationKey {
+        case up
+        case down
+        case left
+        case right
+    }
 
     public enum RunLoopType {
         /// The default option, using Dispatch for the main run loop.
@@ -115,6 +123,9 @@ public class Application {
             if arrowKeyParser.parse(character: char) {
                 guard let key = arrowKeyParser.arrowKey else { continue }
                 arrowKeyParser.arrowKey = nil
+                if let handler = onNavigationKey, handler(navigationKey(from: key)) {
+                    continue
+                }
                 if key == .down {
                     if let next = window.firstResponder?.selectableElement(below: 0) {
                         window.firstResponder?.resignFirstResponder()
@@ -196,6 +207,15 @@ public class Application {
             onStop?()
         } else {
             exit(0)
+        }
+    }
+
+    private func navigationKey(from arrow: ArrowKeyParser.ArrowKey) -> NavigationKey {
+        switch arrow {
+        case .up: return .up
+        case .down: return .down
+        case .left: return .left
+        case .right: return .right
         }
     }
 

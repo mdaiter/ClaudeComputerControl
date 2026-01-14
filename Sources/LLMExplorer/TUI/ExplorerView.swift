@@ -44,16 +44,26 @@ struct ExplorerView: View {
                     viewModel.updateSearch(query)
                 }
             }
-            ForEach(viewModel.filteredAPIs) { api in
+            ForEach(viewModel.visibleAPIs) { api in
                 Button(
-                    action: { },
+                    action: { viewModel.selectAPI(api) },
                     hover: { viewModel.selectAPI(api) }
                 ) {
+                    let isSelected = viewModel.selectedAPI?.id == api.id
                     HStack {
+                        Text(isSelected ? "▸" : " ")
+                            .foregroundColor(.cyan)
                         Text("[\(api.certainty.score)]")
                             .foregroundColor(colorForScore(api.certainty.score))
-                        Text(api.name)
+                        if isSelected {
+                            Text(api.name)
+                                .bold()
+                                .foregroundColor(.white)
+                        } else {
+                            Text(api.name)
+                        }
                     }
+                    .padding(.horizontal, 1)
                 }
             }
         }
