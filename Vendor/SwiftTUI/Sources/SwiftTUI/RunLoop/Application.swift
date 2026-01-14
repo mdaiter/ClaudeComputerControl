@@ -11,6 +11,7 @@ public class Application {
     private var keepRunLoopAlivePort: Port?
 
     public var onStop: (() -> Void)?
+    public var onKeyPress: ((Character) -> Bool)?
 
     private let runLoopType: RunLoopType
 
@@ -141,7 +142,7 @@ public class Application {
                 }
             } else if char == ASCII.EOT {
                 stop()
-            } else {
+            } else if !(onKeyPress?(char) ?? false) {
                 window.firstResponder?.handleEvent(char)
             }
         }

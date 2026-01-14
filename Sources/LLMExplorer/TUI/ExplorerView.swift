@@ -1,17 +1,7 @@
 import SwiftTUI
 
 struct ExplorerView: View {
-    let catalog: APICatalog
-    @State private var selectedAPI: APIEntry?
-    @State private var searchQuery: String = ""
-    @State private var visibleCount: Int = 30
-
-    private var filteredAPIs: [APIEntry] {
-        guard !searchQuery.isEmpty else {
-            return Array(catalog.allAPIs.prefix(visibleCount))
-        }
-        return catalog.search(query: searchQuery).prefix(visibleCount).map { $0 }
-    }
+    @ObservedObject var viewModel: ExplorerViewModel
 
     var body: some View {
         VStack {
@@ -19,7 +9,7 @@ struct ExplorerView: View {
             Spacer()
             HStack(alignment: .top) {
                 apiList
-                if let api = selectedAPI {
+                if let api = viewModel.selectedAPI {
                     detailPanel(api)
                 }
             }
@@ -33,13 +23,13 @@ struct ExplorerView: View {
         VStack {
             Text("Swift API Explorer")
                 .bold()
-            Text(catalog.binaryPath)
+            Text(viewModel.catalog.binaryPath)
                 .foregroundColor(.cyan)
             HStack {
-                Text("\(catalog.stats.typeCount) types")
-                Text("\(catalog.stats.protocolCount) protocols")
-                Text("\(catalog.stats.functionCount) functions")
-                Text("avg: \(Int(catalog.averageCertainty))")
+                Text("\(viewModel.catalog.stats.typeCount) types")
+                Text("\(viewModel.catalog.stats.protocolCount) protocols")
+                Text("\(viewModel.catalog.stats.functionCount) functions")
+                Text("avg: \(Int(viewModel.catalog.averageCertainty))")
             }
             .foregroundColor(.gray)
         }
@@ -51,13 +41,13 @@ struct ExplorerView: View {
                 Text("/")
                     .foregroundColor(.gray)
                 TextField(placeholder: "search") { query in
-                    searchQuery = query
+                    viewModel.updateSearch(query)
                 }
             }
-            ForEach(filteredAPIs) { api in
+            ForEach(viewModel.filteredAPIs) { api in
                 Button(
                     action: { },
-                    hover: { selectedAPI = api }
+                    hover: { viewModel.selectAPI(api) }
                 ) {
                     HStack {
                         Text("[\(api.certainty.score)]")
@@ -90,16 +80,40 @@ struct ExplorerView: View {
                 Text("Members: \(api.children.count)")
                     .foregroundColor(.gray)
             }
+            Spacer()
+            sampleSection(for: api)
         }
         .padding(.horizontal, 2)
         .frame(minWidth: 30)
         .border()
     }
 
+    private func sampleSection(for api: APIEntry) -> some View {
+        VStack(alignment: .leading) {
+            if viewModel.isGeneratingSample {
+                Text("Generating example with LLM…")
+                    .foregroundColor(.cyan)
+            } else if let sample = viewModel.generatedSample, sample.api.id == api.id {
+                Text("Example usage:")
+                    .bold()
+                    .foregroundColor(.green)
+                Text(sample.code)
+                    .foregroundColor(.white)
+            } else if let error = viewModel.generationError {
+                Text("Example unavailable: \(error)")
+                    .foregroundColor(.red)
+            } else {
+                Text("Press 'e' to generate an example")
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+
     private var footer: some View {
         HStack {
             Text("[up/down] Navigate")
             Text("[/] Search")
+            Text("[e] Example")
             Text("[Ctrl+D] Quit")
         }
         .foregroundColor(.gray)

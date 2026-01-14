@@ -5,9 +5,13 @@ import SwiftTUI
 @MainActor
 public final class ExplorerApp {
     private let catalog: APICatalog
+    private let viewModel: ExplorerViewModel
+    private let sampleGenerator: SampleCallGenerator?
 
-    public init(catalog: APICatalog) {
+    public init(catalog: APICatalog, sampleGenerator: SampleCallGenerator? = nil) {
         self.catalog = catalog
+        self.viewModel = ExplorerViewModel(catalog: catalog)
+        self.sampleGenerator = sampleGenerator
     }
 
     /// Runs the interactive TUI explorer.
@@ -21,9 +25,13 @@ public final class ExplorerApp {
         #endif
 
         let app = Application(
-            rootView: ExplorerView(catalog: catalog),
+            rootView: ExplorerView(viewModel: viewModel),
             runLoopType: runLoopType
         )
+        app.onKeyPress = { [weak self] char in
+            guard let self else { return false }
+            return self.handleKeyPress(char)
+        }
 
         if runLoopType == .cooperative {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -44,5 +52,35 @@ public final class ExplorerApp {
     public func export(to path: String) throws {
         let json = try catalog.toJSONString()
         try json.write(toFile: path, atomically: true, encoding: .utf8)
+    }
+
+    private func handleKeyPress(_ char: Character) -> Bool {
+        guard char == "e" || char == "E" else {
+            return false
+        }
+        guard let api = viewModel.selectedAPI else {
+            viewModel.failSampleRequest(message: "Select an API first")
+            return true
+        }
+        guard let generator = sampleGenerator else {
+            viewModel.failSampleRequest(message: "LLM unavailable (set ANTHROPIC_API_KEY)")
+            return true
+        }
+
+        viewModel.beginSampleRequest()
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let sample = try await generator.generateSample(for: api, context: catalog)
+                await MainActor.run {
+                    self.viewModel.finishSampleRequest(with: sample)
+                }
+            } catch {
+                await MainActor.run {
+                    self.viewModel.failSampleRequest(message: error.localizedDescription)
+                }
+            }
+        }
+        return true
     }
 }
