@@ -24,179 +24,22 @@ except ImportError:
     sys.exit(1)
 
 
+# Compact tool definitions - descriptions kept minimal
 TOOLS = [
-    {
-        "name": "observe_ui",
-        "description": "Capture the current UI state of the app. Returns all visible elements with their IDs, roles, titles, values, and available actions. Call this first to see what's on screen.",
-        "input_schema": {"type": "object", "properties": {}, "required": []}
-    },
-    {
-        "name": "diff_ui",
-        "description": "Compare current UI to the last observation. Shows what elements were added, removed, or modified. Returns signals describing what changed semantically.",
-        "input_schema": {"type": "object", "properties": {}, "required": []}
-    },
-    {
-        "name": "where_am_i",
-        "description": "Get your current navigation context: location in UI hierarchy, known landmarks, recent actions, and current hypothesis. Like VoiceOver's describe command.",
-        "input_schema": {"type": "object", "properties": {}, "required": []}
-    },
-    {
-        "name": "navigate",
-        "description": "Move to adjacent element in the UI. Like pressing arrow keys in VoiceOver. Builds up mental model incrementally.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "direction": {"type": "string", "enum": ["next", "prev", "first", "last"], "description": "Direction to navigate"}
-            },
-            "required": ["direction"]
-        }
-    },
-    {
-        "name": "jump_to",
-        "description": "Jump to next element of a specific type. Like VoiceOver rotor - jump between headings, buttons, text fields, etc.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "role": {"type": "string", "description": "Element role to find: Button, TextField, StaticText, Image, Cell, etc."},
-                "direction": {"type": "string", "enum": ["next", "prev"], "default": "next"}
-            },
-            "required": ["role"]
-        }
-    },
-    {
-        "name": "list_landmarks",
-        "description": "Find and list all landmarks/regions in the UI: toolbar, sidebar, main content, navigation, search, forms.",
-        "input_schema": {"type": "object", "properties": {}, "required": []}
-    },
-    {
-        "name": "go_to_landmark",
-        "description": "Jump directly to a landmark by type or index number.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "identifier": {"type": "string", "description": "Landmark type (toolbar, sidebar, main) or index from list_landmarks"}
-            },
-            "required": ["identifier"]
-        }
-    },
-    {
-        "name": "describe_current",
-        "description": "Get detailed description of the currently focused element.",
-        "input_schema": {"type": "object", "properties": {}, "required": []}
-    },
-    {
-        "name": "list_nearby",
-        "description": "List actionable elements near current position. Helps understand available actions without seeing everything.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "count": {"type": "integer", "default": 10, "description": "How many nearby elements to list"}
-            },
-            "required": []
-        }
-    },
-    {
-        "name": "set_hypothesis",
-        "description": "Record your current belief about the app state. Helps maintain context. Example: 'I am on the login screen'",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "hypothesis": {"type": "string", "description": "Your understanding of where you are and app state"}
-            },
-            "required": ["hypothesis"]
-        }
-    },
-    {
-        "name": "find_content",
-        "description": "Find UI elements that have actual text content (titles, labels, values). Can search for specific text. Great for finding chat items, messages, buttons with labels, etc.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "query": {"type": "string", "description": "Optional search term to filter elements"},
-                "count": {"type": "integer", "default": 20, "description": "Max results to return"}
-            },
-            "required": []
-        }
-    },
-    {
-        "name": "click",
-        "description": "Click/press a UI element by its ID. Use for buttons, checkboxes, menu items, etc.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "element_id": {"type": "string", "description": "The element ID (e.g., 'e5')"}
-            },
-            "required": ["element_id"]
-        }
-    },
-    {
-        "name": "type",
-        "description": "Type text into a text field or text area by element ID.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "element_id": {"type": "string", "description": "The text field element ID"},
-                "text": {"type": "string", "description": "The text to type"}
-            },
-            "required": ["element_id", "text"]
-        }
-    },
-    {
-        "name": "focus",
-        "description": "Set focus to a specific element.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "element_id": {"type": "string", "description": "The element ID to focus"}
-            },
-            "required": ["element_id"]
-        }
-    },
-    {
-        "name": "press_key",
-        "description": "Press a keyboard key, optionally with modifiers. For Enter, Tab, Escape, shortcuts, etc.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "key": {"type": "string", "description": "Key name: return, tab, escape, space, delete, up, down, left, right, a-z"},
-                "modifiers": {"type": "array", "items": {"type": "string"}, "description": "Modifiers: cmd, shift, alt, ctrl"}
-            },
-            "required": ["key"]
-        }
-    },
-    {
-        "name": "wait",
-        "description": "Wait for a specified time. Use after actions that trigger animations or loading.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "seconds": {"type": "number", "description": "Seconds to wait (e.g., 0.5, 1, 2)"}
-            },
-            "required": ["seconds"]
-        }
-    },
-    {
-        "name": "task_complete",
-        "description": "Signal that the task has been completed successfully.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "summary": {"type": "string", "description": "Brief summary of what was accomplished"}
-            },
-            "required": ["summary"]
-        }
-    },
-    {
-        "name": "task_failed",
-        "description": "Signal that the task cannot be completed.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "reason": {"type": "string", "description": "Why the task failed"}
-            },
-            "required": ["reason"]
-        }
-    }
+    {"name": "observe_ui", "description": "Get all visible UI elements with IDs, roles, titles, values.", "input_schema": {"type": "object", "properties": {}, "required": []}},
+    {"name": "diff_ui", "description": "Show what changed since last observation.", "input_schema": {"type": "object", "properties": {}, "required": []}},
+    {"name": "where_am_i", "description": "Get current position and context.", "input_schema": {"type": "object", "properties": {}, "required": []}},
+    {"name": "navigate", "description": "Move to adjacent element.", "input_schema": {"type": "object", "properties": {"direction": {"type": "string", "enum": ["next", "prev", "first", "last"]}}, "required": ["direction"]}},
+    {"name": "jump_to", "description": "Jump to element by role.", "input_schema": {"type": "object", "properties": {"role": {"type": "string"}, "direction": {"type": "string", "enum": ["next", "prev"], "default": "next"}}, "required": ["role"]}},
+    {"name": "go_to_landmark", "description": "Jump to landmark (toolbar/sidebar/main).", "input_schema": {"type": "object", "properties": {"identifier": {"type": "string"}}, "required": ["identifier"]}},
+    {"name": "find_content", "description": "Search for elements by text.", "input_schema": {"type": "object", "properties": {"query": {"type": "string"}, "count": {"type": "integer", "default": 20}}, "required": []}},
+    {"name": "click", "description": "Click element by ID.", "input_schema": {"type": "object", "properties": {"element_id": {"type": "string"}}, "required": ["element_id"]}},
+    {"name": "type", "description": "Type text into element.", "input_schema": {"type": "object", "properties": {"element_id": {"type": "string"}, "text": {"type": "string"}}, "required": ["element_id", "text"]}},
+    {"name": "focus", "description": "Focus element.", "input_schema": {"type": "object", "properties": {"element_id": {"type": "string"}}, "required": ["element_id"]}},
+    {"name": "press_key", "description": "Press key with optional modifiers (cmd/shift/alt/ctrl).", "input_schema": {"type": "object", "properties": {"key": {"type": "string"}, "modifiers": {"type": "array", "items": {"type": "string"}}}, "required": ["key"]}},
+    {"name": "wait", "description": "Wait seconds.", "input_schema": {"type": "object", "properties": {"seconds": {"type": "number"}}, "required": ["seconds"]}},
+    {"name": "task_complete", "description": "Task done.", "input_schema": {"type": "object", "properties": {"summary": {"type": "string"}}, "required": ["summary"]}},
+    {"name": "task_failed", "description": "Task impossible.", "input_schema": {"type": "object", "properties": {"reason": {"type": "string"}}, "required": ["reason"]}},
 ]
 
 
@@ -272,6 +115,28 @@ class AppAgentBridge:
             self.process.wait()
 
 
+def _estimate_msg_size(msg) -> int:
+    """Estimate message size handling Anthropic SDK objects."""
+    try:
+        return len(json.dumps(msg))
+    except TypeError:
+        # Handle SDK objects like TextBlock
+        return len(str(msg))
+
+
+def _prune_messages(messages: list, max_chars: int = 20000) -> list:
+    """Keep recent messages, drop old ones if total exceeds max_chars."""
+    total = sum(_estimate_msg_size(m) for m in messages)
+    while total > max_chars and len(messages) > 2:
+        # Remove oldest pair (assistant + user tool_result)
+        removed = messages.pop(1)
+        total -= _estimate_msg_size(removed)
+        if messages and len(messages) > 1:
+            removed = messages.pop(1)
+            total -= _estimate_msg_size(removed)
+    return messages
+
+
 def run_agent(app_name: str, task: str, max_turns: int = 30, verbose: bool = True):
     """Run the agent loop until task completion or max turns."""
 
@@ -285,28 +150,10 @@ def run_agent(app_name: str, task: str, max_turns: int = 30, verbose: bool = Tru
 
     bridge.start()
 
-    system_prompt = f"""You are an AI agent controlling a macOS application called "{app_name}" through its accessibility API.
+    system_prompt = f"""Control "{app_name}" via accessibility API. Task: {task}
 
-Your task: {task}
-
-Instructions:
-1. First, call observe_ui to see the current state of the app
-2. Analyze what you see and decide what action to take
-3. Execute actions (click, type, press_key, etc.)
-4. After each action, either observe_ui or diff_ui to see what changed
-5. Continue until the task is complete, then call task_complete
-6. If you get stuck or the task is impossible, call task_failed
-
-Tips:
-- Element IDs (e.g., "e5") are assigned by observe_ui and may change between observations
-- Use diff_ui to efficiently see what changed after an action
-- Some actions need a short wait() afterward for animations
-- If an element isn't found, call observe_ui to refresh the element cache
-- Look for text fields (AXTextField, AXTextArea) to type into
-- Look for buttons (AXButton) to click
-- Use press_key for keyboard shortcuts (e.g., cmd+t for new tab)
-
-Be methodical: observe, plan, act, verify."""
+Workflow: observe_ui → act → diff_ui → repeat → task_complete/task_failed
+Element IDs (e.g. "e5") change between observations. Use press_key for shortcuts (cmd+t=new tab)."""
 
     messages = [{"role": "user", "content": f"Please complete this task: {task}"}]
 
@@ -355,24 +202,35 @@ Be methodical: observe, plan, act, verify."""
                 # Execute tool via bridge
                 result = bridge.call(tool_name, tool_input)
 
-                if verbose:
-                    # Truncate large outputs
+                # Truncate result for both display AND message history to save tokens
+                result_str = json.dumps(result)
+                if len(result_str) > 2000:
+                    # Keep structure but truncate data arrays
+                    if isinstance(result.get("data"), dict) and "elements" in result.get("data", {}):
+                        result["data"]["elements"] = result["data"]["elements"][:15]
+                        result["data"]["_truncated"] = True
                     result_str = json.dumps(result)
-                    if len(result_str) > 500:
-                        result_str = result_str[:500] + "..."
-                    print(f"[Result] {result_str}")
+                    if len(result_str) > 2000:
+                        result_str = result_str[:2000] + '..."}'
+
+                if verbose:
+                    display_str = result_str[:500] + "..." if len(result_str) > 500 else result_str
+                    print(f"[Result] {display_str}")
 
                 assistant_content.append(block)
                 tool_results.append({
                     "type": "tool_result",
                     "tool_use_id": block.id,
-                    "content": json.dumps(result)
+                    "content": result_str
                 })
 
         # Update messages
         messages.append({"role": "assistant", "content": assistant_content})
         if tool_results:
             messages.append({"role": "user", "content": tool_results})
+
+        # Prune old messages to stay under token limits
+        messages = _prune_messages(messages)
 
         # Check stop reason
         if response.stop_reason == "end_turn" and not tool_results:
