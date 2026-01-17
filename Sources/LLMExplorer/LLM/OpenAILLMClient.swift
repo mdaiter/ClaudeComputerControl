@@ -1,20 +1,17 @@
 import Foundation
 
-/// Claude API client implementation.
-public final class ClaudeLLMClient: LLMClient, @unchecked Sendable {
+public final class OpenAILLMClient: LLMClient, @unchecked Sendable {
     public let model: String
     private let apiKey: String
-    private let apiURL = "https://api.anthropic.com/v1/messages"
+    private let apiURL = "https://api.openai.com/v1/chat/completions"
     private let session: URLSession
 
-    public init(model: LLMModel = .claudeSonnet, apiKey: String? = nil) throws {
+    public init(model: LLMModel, apiKey: String? = nil) throws {
         self.model = model.rawValue
 
-        // Get API key from parameter or environment
         if let key = apiKey {
             self.apiKey = key
-        } else if let envKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] ??
-                    ProcessInfo.processInfo.environment["CLAUDE_API_KEY"] {
+        } else if let envKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] {
             self.apiKey = envKey
         } else {
             throw LLMError.apiKeyMissing
@@ -26,7 +23,7 @@ public final class ClaudeLLMClient: LLMClient, @unchecked Sendable {
         self.session = URLSession(configuration: config)
     }
 
-    public func complete(prompt: String, systemPrompt: String? = nil) async throws -> String {
+    public func complete(prompt: String, systemPrompt: String?) async throws -> String {
         let request = try buildRequest(prompt: prompt, systemPrompt: systemPrompt)
 
         let (data, response) = try await session.data(for: request)
@@ -51,20 +48,20 @@ public final class ClaudeLLMClient: LLMClient, @unchecked Sendable {
         var request = URLRequest(url: URL(string: apiURL)!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
 
-        var body: [String: Any] = [
-            "model": model,
-            "max_tokens": 4096,
-            "messages": [
-                ["role": "user", "content": prompt]
-            ]
-        ]
-
-        if let system = systemPrompt {
-            body["system"] = system
+        var messages: [[String: String]] = []
+        if let systemPrompt {
+            messages.append(["role": "system", "content": systemPrompt])
         }
+        messages.append(["role": "user", "content": prompt])
+
+        let body: [String: Any] = [
+            "model": model,
+            "messages": messages,
+            "temperature": 0.2,
+            "max_tokens": 2048
+        ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request
@@ -72,11 +69,11 @@ public final class ClaudeLLMClient: LLMClient, @unchecked Sendable {
 
     private func parseResponse(_ data: Data) throws -> String {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let content = json["content"] as? [[String: Any]],
-              let firstContent = content.first,
-              let text = firstContent["text"] as? String else {
+              let choices = json["choices"] as? [[String: Any]],
+              let message = choices.first?["message"] as? [String: Any],
+              let content = message["content"] as? String else {
             throw LLMError.invalidResponse
         }
-        return text
+        return content
     }
 }

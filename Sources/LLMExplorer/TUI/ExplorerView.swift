@@ -121,13 +121,26 @@ struct ExplorerView: View {
                 Text("Example usage:")
                     .bold()
                     .foregroundColor(.green)
-                Text(sample.code)
-                    .foregroundColor(.white)
+                let lines = codeLines(for: sample.code)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(lines.enumerated()), id: \.0) { pair in
+                            Button(action: {}, hover: {}) {
+                                Text(pair.1)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                    }
+                }
+                .frame(height: 12)
+                .border()
+                Text("Focus the code box and use ↑/↓ to scroll.")
+                    .foregroundColor(.gray)
             } else if let error = viewModel.generationError {
                 Text("Example unavailable: \(error)")
                     .foregroundColor(.red)
             } else {
-                Text("Press 'e' to generate an example")
+                Text("Press Ctrl+E to generate an example")
                     .foregroundColor(.gray)
             }
         }
@@ -191,5 +204,9 @@ struct ExplorerView: View {
         case 50..<80: return .yellow
         default: return .red
         }
+    }
+
+    private func codeLines(for code: String) -> [String] {
+        code.components(separatedBy: .newlines)
     }
 }

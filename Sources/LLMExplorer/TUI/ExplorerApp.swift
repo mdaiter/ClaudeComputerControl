@@ -125,7 +125,7 @@ public final class ExplorerApp {
             return
         }
         guard let generator = sampleGenerator else {
-            viewModel.failSampleRequest(message: "LLM unavailable (set ANTHROPIC_API_KEY)")
+            viewModel.failSampleRequest(message: "LLM unavailable (set ANTHROPIC_API_KEY or OPENAI_API_KEY)")
             return
         }
 

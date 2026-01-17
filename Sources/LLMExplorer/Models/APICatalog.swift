@@ -152,6 +152,13 @@ extension APICatalog {
         return encoder
     }
 
+    /// JSON decoder configured for control layer output
+    public static var jsonDecoder: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
+
     /// Encode to JSON data
     public func toJSON() throws -> Data {
         try Self.jsonEncoder.encode(self)
@@ -164,5 +171,17 @@ extension APICatalog {
             throw EncodingError.invalidValue(data, .init(codingPath: [], debugDescription: "Failed to convert JSON data to string"))
         }
         return string
+    }
+
+    /// Decode from JSON data
+    public static func fromJSON(_ data: Data) throws -> APICatalog {
+        try jsonDecoder.decode(APICatalog.self, from: data)
+    }
+
+    /// Load catalog from a JSON file on disk.
+    public static func load(from path: String) throws -> APICatalog {
+        let url = URL(fileURLWithPath: path)
+        let data = try Data(contentsOf: url)
+        return try fromJSON(data)
     }
 }

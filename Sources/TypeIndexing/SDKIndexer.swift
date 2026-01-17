@@ -43,18 +43,28 @@ struct SwiftModuleIndexer {
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 @available(visionOS, unavailable)
-struct SwiftInterfaceFile: Sendable, Codable {
-    let moduleName: String
-    let path: String
+public struct SwiftInterfaceFile: Sendable, Codable {
+    public let moduleName: String
+    public let path: String
+
+    public init(moduleName: String, path: String) {
+        self.moduleName = moduleName
+        self.path = path
+    }
 }
 
 @available(iOS, unavailable)
 @available(tvOS, unavailable)
 @available(watchOS, unavailable)
 @available(visionOS, unavailable)
-struct SwiftInterfaceGeneratedFile: Sendable, Codable {
-    let moduleName: String
-    let contents: String
+public struct SwiftInterfaceGeneratedFile: Sendable, Codable {
+    public let moduleName: String
+    public let contents: String
+
+    public init(moduleName: String, contents: String) {
+        self.moduleName = moduleName
+        self.contents = contents
+    }
 }
 
 @available(iOS, unavailable)

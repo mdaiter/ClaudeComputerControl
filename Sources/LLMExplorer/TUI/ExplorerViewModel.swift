@@ -75,7 +75,7 @@ final class ExplorerViewModel: ObservableObject {
         if !available && searchMode == .llm {
             searchMode = .keyword
             llmResults = []
-            llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY)."
+            llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY or OPENAI_API_KEY)."
         }
     }
 
@@ -91,7 +91,7 @@ final class ExplorerViewModel: ObservableObject {
             }
         case .llm:
             guard llmSearchAvailable else {
-                llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY)."
+                llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY or OPENAI_API_KEY)."
                 return
             }
             guard !searchQuery.isEmpty else {
@@ -113,7 +113,7 @@ final class ExplorerViewModel: ObservableObject {
         switch searchMode {
         case .keyword:
             guard llmSearchAvailable else {
-                llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY)."
+                llmSearchError = "LLM search unavailable (set ANTHROPIC_API_KEY or OPENAI_API_KEY)."
                 return
             }
             searchMode = .llm

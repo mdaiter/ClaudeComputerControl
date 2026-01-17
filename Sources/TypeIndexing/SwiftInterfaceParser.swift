@@ -11,17 +11,17 @@ import OrderedCollections
 @available(watchOS, unavailable)
 @available(visionOS, unavailable)
 @available(macOS 13.0, *)
-actor SwiftInterfaceParser {
+public actor SwiftInterfaceParser {
 
-    let moduleName: String
+    public let moduleName: String
     
-    let sourceFileSyntax: SourceFileSyntax
+    public let sourceFileSyntax: SourceFileSyntax
 
-    private(set) var typeInfos: [TypeInfo] = []
+    public private(set) var typeInfos: [TypeInfo] = []
 
-    private(set) var importInfos: [ImportInfo] = []
+    public private(set) var importInfos: [ImportInfo] = []
     
-    var subModuleNames: OrderedSet<String> {
+    public var subModuleNames: OrderedSet<String> {
         var results: OrderedSet<String> = []
         for importInfo in importInfos {
             let moduleComponents = importInfo.moduleName.components(separatedBy: ".")
@@ -32,19 +32,19 @@ actor SwiftInterfaceParser {
         return results
     }
     
-    init(file: SwiftInterfaceFile) throws {
+    public init(file: SwiftInterfaceFile) throws {
         self.moduleName = file.moduleName
         var parser = try SwiftParser.Parser(.init(contentsOfFile: file.path, encoding: .utf8))
         self.sourceFileSyntax = .parse(from: &parser)
     }
     
-    init(file: SwiftInterfaceGeneratedFile) {
+    public init(file: SwiftInterfaceGeneratedFile) {
         self.moduleName = file.moduleName
         var parser = SwiftParser.Parser(file.contents)
         self.sourceFileSyntax = .parse(from: &parser)
     }
 
-    func index() async throws {
+    public func index() async throws {
         let visitor = IndexerVisitor(viewMode: .sourceAccurate)
         visitor.walk(sourceFileSyntax)
         typeInfos = visitor.typeInfos
@@ -54,19 +54,19 @@ actor SwiftInterfaceParser {
     // MARK: - Data Models to store indexed information
 
     // Represents the kind of a type declaration
-    enum TypeKind: String, CustomStringConvertible, Sendable {
+    public enum TypeKind: String, CustomStringConvertible, Sendable {
         case `struct`
         case `class`
         case `enum`
         case `protocol`
 
-        var description: String {
+        public var description: String {
             return rawValue
         }
     }
 
     // Represents the kind of a member within a type
-    enum MemberKind: String, CustomStringConvertible, Sendable {
+    public enum MemberKind: String, CustomStringConvertible, Sendable {
         case `property`
         case `method`
         case `initializer`
@@ -74,29 +74,29 @@ actor SwiftInterfaceParser {
         case `associatedType` // For protocols
         case `enumCase` // For enums
 
-        var description: String {
+        public var description: String {
             return rawValue
         }
     }
 
     // Stores information about a single member (property, method, etc.)
-    struct MemberInfo: CustomStringConvertible, Sendable {
-        let name: String
-        let kind: MemberKind
+    public struct MemberInfo: CustomStringConvertible, Sendable {
+        public let name: String
+        public let kind: MemberKind
 
-        var description: String {
+        public var description: String {
             return "      - \(name) (kind: \(kind))"
         }
     }
 
     // Stores information about a top-level type declaration
-    struct TypeInfo: CustomStringConvertible, Sendable {
-        let name: String
-        let kind: TypeKind
-        var members: [MemberInfo] = []
-        var genericParams: [String] = []
+    public struct TypeInfo: CustomStringConvertible, Sendable {
+        public let name: String
+        public let kind: TypeKind
+        public var members: [MemberInfo] = []
+        public var genericParams: [String] = []
 
-        var description: String {
+        public var description: String {
             var desc = "Found \(kind) `\(name)` with \(members.count) members:"
             desc += genericParams.isEmpty ? "" : " <\(genericParams.joined(separator: ", "))>"
             if !members.isEmpty {
@@ -107,10 +107,10 @@ actor SwiftInterfaceParser {
         }
     }
 
-    struct ImportInfo: CustomStringConvertible, Sendable {
-        let moduleName: String
+    public struct ImportInfo: CustomStringConvertible, Sendable {
+        public let moduleName: String
 
-        var description: String {
+        public var description: String {
             return "Import \(moduleName)"
         }
     }

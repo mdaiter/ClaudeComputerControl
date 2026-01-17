@@ -62,7 +62,12 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:api.github.com)",
       "Bash(MACHO_SWIFT_SECTION_USE_SWIFTTUI=1 swift package:*)",
-      "Bash(git clone:*)"
+      "Bash(git clone:*)",
+      "Bash(swiftc:*)",
+      "Bash(pgrep:*)",
+      "Bash(pkill:*)",
+      "Bash(/tmp/AppAgent WhatsApp --json-rpc)",
+      "Bash(do)"
     ],
     "deny": [],
     "ask": []

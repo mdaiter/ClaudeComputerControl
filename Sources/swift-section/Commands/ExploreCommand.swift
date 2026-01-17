@@ -26,29 +26,56 @@ struct ExploreCommand: AsyncParsableCommand {
     @Flag(help: "Show C-imported types in the analysis.")
     var showCImportedTypes: Bool = false
 
+    @Option(name: .long, help: "Path to a previously exported API catalog JSON to explore.", completion: .file())
+    var catalogJSON: String?
+
+    @Option(name: .long, help: "Path to a Swift interface (.swift) file to explore.", completion: .file())
+    var interfaceFile: String?
+
     func run() async throws {
-        let machOFile = try MachOFile.load(options: machOOptions)
-        let binaryPath = machOOptions.filePath ?? machOOptions.cacheImageName ?? "dyld_shared_cache"
+        if catalogJSON != nil && interfaceFile != nil {
+            throw ValidationError("Specify either --catalog-json or --interface-file, not both.")
+        }
 
-        print("Preparing to analyze Swift interface...")
+        let catalog: APICatalog
+        if let catalogJSON {
+            print("Loading catalog from \(catalogJSON)...")
+            catalog = try APICatalog.load(from: catalogJSON)
+        } else if let interfaceFile {
+            #if os(macOS)
+            if #available(macOS 13.0, *) {
+                print("Importing Swift interface from \(interfaceFile)...")
+                catalog = try await SwiftInterfaceCatalogImporter.load(from: interfaceFile)
+            } else {
+                throw ValidationError("Swift interface import requires macOS 13 or later.")
+            }
+            #else
+            throw ValidationError("Swift interface import is only available on macOS.")
+            #endif
+        } else {
+            let machOFile = try MachOFile.load(options: machOOptions)
+            let binaryPath = machOOptions.filePath ?? machOOptions.cacheImageName ?? "dyld_shared_cache"
 
-        let configuration = SwiftInterfaceBuilderConfiguration(
-            indexConfiguration: .init(showCImportedTypes: showCImportedTypes),
-            printConfiguration: .init()
-        )
+            print("Preparing to analyze Swift interface...")
 
-        let builder = try SwiftInterfaceBuilder(
-            configuration: configuration,
-            eventHandlers: [ConsoleEventHandler()],
-            in: machOFile
-        )
+            let configuration = SwiftInterfaceBuilderConfiguration(
+                indexConfiguration: .init(showCImportedTypes: showCImportedTypes),
+                printConfiguration: .init()
+            )
 
-        try await builder.prepare()
+            let builder = try SwiftInterfaceBuilder(
+                configuration: configuration,
+                eventHandlers: [ConsoleEventHandler()],
+                in: machOFile
+            )
 
-        print("Analyzing APIs and computing certainty scores...")
+            try await builder.prepare()
 
-        let analyzer = APICertaintyAnalyzer(machO: machOFile, builder: builder)
-        let catalog = try await analyzer.analyze(binaryPath: binaryPath)
+            print("Analyzing APIs and computing certainty scores...")
+
+            let analyzer = APICertaintyAnalyzer(machO: machOFile, builder: builder)
+            catalog = try await analyzer.analyze(binaryPath: binaryPath)
+        }
 
         print("Extracted \(catalog.stats.totalAPIs) APIs")
         print("Average certainty: \(String(format: "%.1f", catalog.averageCertainty))")
@@ -73,9 +100,27 @@ struct ExploreCommand: AsyncParsableCommand {
             print("Starting interactive explorer...")
             print("(Note: TUI requires terminal with curses support)")
 
-            var llmClient: ClaudeLLMClient?
+            let env = ProcessInfo.processInfo.environment
+            let hasAnthropicKey = env["ANTHROPIC_API_KEY"] != nil || env["CLAUDE_API_KEY"] != nil
+            let hasOpenAIKey = env["OPENAI_API_KEY"] != nil
+
+            var selectedModel = model.model
+            if selectedModel.provider == .anthropic, !hasAnthropicKey, hasOpenAIKey {
+                print("ANTHROPIC_API_KEY not set. Falling back to GPT-4o.")
+                selectedModel = .gpt4o
+            } else if selectedModel.provider == .openAI, !hasOpenAIKey, hasAnthropicKey {
+                print("OPENAI_API_KEY not set. Falling back to Claude Sonnet.")
+                selectedModel = .claudeSonnet
+            }
+
+            var llmClient: (any LLMClient)?
             do {
-                llmClient = try ClaudeLLMClient(model: model.model)
+                switch selectedModel.provider {
+                case .anthropic:
+                    llmClient = try ClaudeLLMClient(model: selectedModel)
+                case .openAI:
+                    llmClient = try OpenAILLMClient(model: selectedModel)
+                }
             } catch {
                 print("LLM features disabled: \(error.localizedDescription)")
             }
@@ -101,11 +146,15 @@ struct ExploreCommand: AsyncParsableCommand {
 enum LLMModelOption: String, ExpressibleByArgument, CaseIterable, Sendable {
     case sonnet = "sonnet"
     case opus = "opus"
+    case gpt4o = "gpt4o"
+    case gpt4omini = "gpt4omini"
 
     var model: LLMModel {
         switch self {
         case .sonnet: return .claudeSonnet
         case .opus: return .claudeOpus
+        case .gpt4o: return .gpt4o
+        case .gpt4omini: return .gpt4oMini
         }
     }
 

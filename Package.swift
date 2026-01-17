@@ -332,6 +332,7 @@ extension Target {
             .MachOKit,
             .target(.MachOSwiftSection),
             .target(.SwiftInterface),
+            .target(.TypeIndexing),
             .target(.SwiftDump),
             .target(.Demangling),
             .target(.Utilities),
@@ -347,6 +348,26 @@ extension Target {
             .target(.LLMExplorer),
             .product(name: "Rainbow", package: "Rainbow"),
             .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        ]
+    )
+    
+    static let SwiftSectionMCPCore = Target.target(
+        name: "SwiftSectionMCPCore",
+        dependencies: [
+            .product(name: "MachOKit", package: "MachOKit"),
+            .target(.MachOFoundation),
+            .target(.MachOSwiftSection),
+            .target(.SwiftInterface),
+            .target(.Semantic),
+            .target(.MachOSymbols),
+            .product(name: "Rainbow", package: "Rainbow"),
+        ]
+    )
+
+    static let swift_section_mcp = Target.executableTarget(
+        name: "swift-section-mcp",
+        dependencies: [
+            .target(.SwiftSectionMCPCore),
         ]
     )
     
@@ -428,6 +449,17 @@ extension Target {
         ],
         swiftSettings: testSettings
     )
+    
+    static let SwiftSectionMCPTests = Target.testTarget(
+        name: "SwiftSectionMCPTests",
+        dependencies: [
+            .target(.SwiftSectionMCPCore),
+            .target(.MachOTestingSupport),
+            .target(.SwiftInterface),
+            .target(.MachOSwiftSection),
+        ],
+        swiftSettings: testSettings
+    )
 }
 
 let package = Package(
@@ -440,6 +472,7 @@ let package = Package(
         .library(.TypeIndexing),
         .library(.LLMExplorer),
         .executable(.swift_section),
+        .executable(.swift_section_mcp),
     ],
     dependencies: dependencies,
     targets: [
@@ -462,6 +495,8 @@ let package = Package(
         .TypeIndexing,
         .LLMExplorer,
         .swift_section,
+        .SwiftSectionMCPCore,
+        .swift_section_mcp,
         .MachOMacros,
         .MachOTestingSupport,
         .DemanglingTests,
@@ -470,6 +505,7 @@ let package = Package(
         .SwiftDumpTests,
         .TypeIndexingTests,
         .SwiftInterfaceTests,
+        .SwiftSectionMCPTests,
     ]
 )
 
