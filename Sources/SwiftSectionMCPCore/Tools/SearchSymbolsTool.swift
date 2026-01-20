@@ -146,7 +146,7 @@ private enum SymbolClassifier {
     static func classify(node: Node?) -> SymbolSearchKind {
         guard let node else { return .other }
 
-        if node.contains(.method) {
+        if node.contains(.methodDescriptor) || node.contains(.methodLookupFunction) {
             return .method
         } else if node.contains(.getter) || node.contains(.setter) || node.contains(.willSet) || node.contains(.didSet) {
             return .accessor

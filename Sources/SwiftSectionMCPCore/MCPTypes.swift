@@ -182,8 +182,6 @@ extension JSONValue: Codable {
 }
 
 extension JSONValue {
-    static let null: JSONValue = .null
-
     func decode<T: Decodable>(_ type: T.Type, using decoder: JSONDecoder = JSONDecoder()) throws -> T {
         let encoder = JSONEncoder()
         let data = try encoder.encode(self)

@@ -110,7 +110,7 @@ extension TypeContextDescriptorWrapper {
         }
     }
 
-    func typeName<MachO: MachOSwiftSectionRepresentableWithCache>(in machO: MachO) throws -> TypeName {
+    package func typeName<MachO: MachOSwiftSectionRepresentableWithCache>(in machO: MachO) throws -> TypeName {
         return try TypeName(node: MetadataReader.demangleContext(for: .type(self), in: machO), kind: kind)
     }
 }

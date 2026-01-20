@@ -45,7 +45,7 @@ package struct MachOLoadOptions {
     }
 }
 
-enum InterfaceArchitecture: String, Codable, CaseIterable {
+package enum InterfaceArchitecture: String, Codable, CaseIterable {
     case x86_64
     case arm64
     case arm64e
@@ -141,7 +141,7 @@ package enum MachOLoader {
         case .machO(let machOFile):
             return machOFile
         case .fat(let fatFile):
-            let machOFiles = fatFile.machOFiles()
+            let machOFiles = try fatFile.machOFiles()
             let preferredSubtype = options.architecture?.cpuSubtype ?? CPU.current?.subtype
             let selected = preferredSubtype.flatMap { subtype in
                 machOFiles.first { $0.header.cpu.subtype == subtype }

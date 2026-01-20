@@ -1,15 +1,30 @@
 import Foundation
 import Testing
+import XCTest
+import MachOKit
+import Demangling
 @testable import MachOSwiftSection
 @testable import MachOTestingSupport
 
-final class ExternalSymbolTests: MachOFileTests, @unchecked Sendable {
-    override class var fileName: MachOFileName { .iOS_18_5_Simulator_SwiftUI }
-
+final class ExternalSymbolTests: @unchecked Sendable {
     @Test func machOSections() async throws {
-        for symbol in machOFile.symbols where symbol.nlist.isExternal && symbol.name.isSwiftSymbol {
+        let swiftUIPath = MachOFileName.iOS_18_5_Simulator_SwiftUI.rawValue
+        guard FileManager.default.fileExists(atPath: swiftUIPath) else {
+            return
+        }
+        let file = try loadFromFile(named: .iOS_18_5_Simulator_SwiftUI)
+        let machO: MachOFile
+        switch file {
+        case .fat(let fatFile):
+            machO = try required(fatFile.machOFiles().first)
+        case .machO(let machOFile):
+            machO = machOFile
+        @unknown default:
+            fatalError()
+        }
+        for symbol in machO.symbols where symbol.nlist.isExternal && symbol.name.isSwiftSymbol {
             let demangledNode = try symbol.demangledNode
-            demangledNode.print(using: .default).print()
+            demangledNode.print(using: DemangleOptions.default).print()
             demangledNode.description.print()
             "-----------------------------".print()
         }

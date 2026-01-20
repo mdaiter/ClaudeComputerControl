@@ -1,6 +1,6 @@
 import Foundation
 
-final class MCPServer {
+package final class MCPServer {
     private let reader = JSONRPCMessageReader()
     private let writer = JSONRPCMessageWriter()
     private let decoder: JSONDecoder
@@ -25,7 +25,11 @@ final class MCPServer {
         self.encoder = encoder
     }
 
-    func run() async {
+    package convenience init() {
+        self.init(tools: [SwiftInterfaceTool(), ListTypesTool(), SearchSymbolsTool()])
+    }
+
+    package func run() async {
         logger.info("Swift Section MCP server booting...")
         do {
             while !shouldTerminate {
@@ -90,7 +94,8 @@ final class MCPServer {
     private func handleShutdown(_ request: JSONRPCRequest) throws {
         guard let id = request.id else { return }
         isShuttingDown = true
-        try respondSuccess(id: id, result: JSONValue.null)
+        let result: JSONValue = .null
+        try respondSuccess(id: id, result: result)
     }
 
     private func handleToolsList(_ request: JSONRPCRequest) throws {

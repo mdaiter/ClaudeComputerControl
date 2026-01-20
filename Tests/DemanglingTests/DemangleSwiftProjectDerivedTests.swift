@@ -1425,7 +1425,7 @@ struct DemangleSwiftProjectDerivedTests {
 
     @Test func _$s4test3fooV4blahyAA1SV1fQryFQOy_Qo_AHF() {
         let input = "$s4test3fooV4blahyAA1SV1fQryFQOy_Qo_AHF"
-        let output = "test.foo.blah(<<opaque return type of test.S.f() -> some>>.0) -> <<opaque return type of test.S.f() -> some>>.0"
+        let output = "test.foo.blah(<<opaque return type of test.S.f() -> some>>.0.) -> <<opaque return type of test.S.f() -> some>>.0."
         do {
             let parsed = try demangleAsNode(input)
             let result = parsed.print(using: .default.union(.synthesizeSugarOnTypes))

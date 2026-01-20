@@ -370,7 +370,74 @@ extension Target {
             .target(.SwiftSectionMCPCore),
         ]
     )
+
+    static let AppAutomationCore = Target.target(
+        name: "AppAutomationCore",
+        dependencies: []
+    )
+
+    static let AppAutomationAX = Target.target(
+        name: "AppAutomationAX",
+        dependencies: [
+            .target(.AppAutomationCore),
+        ]
+    )
+
+    static let AppAutomationXPC = Target.target(
+        name: "AppAutomationXPC",
+        dependencies: [
+            .target(.AppAutomationCore),
+        ]
+    )
+
+    static let AppAutomationDaemon = Target.executableTarget(
+        name: "AppAutomationDaemon",
+        dependencies: [
+            .target(.AppAutomationCore),
+            .target(.AppAutomationAX),
+            .target(.AppAutomationXPC),
+        ]
+    )
+
+    static let AppAutomationSafariHelper = Target.executableTarget(
+        name: "AppAutomationSafariHelper",
+        dependencies: [
+            .target(.AppAutomationCore),
+            .target(.AppAutomationAX),
+            .target(.AppAutomationXPC),
+        ]
+    )
+
+    static let AppAutomationMessagesHelper = Target.executableTarget(
+        name: "AppAutomationMessagesHelper",
+        dependencies: [
+            .target(.AppAutomationCore),
+            .target(.AppAutomationAX),
+            .target(.AppAutomationXPC),
+        ]
+    )
     
+    static let AppAutomationCLI = Target.executableTarget(
+        name: "app-automation",
+        dependencies: [
+            .target(.AppAutomationCore),
+            .target(.AppAutomationAX),
+        ],
+        path: "Sources/AppAutomationCLI"
+    )
+    
+    static let AppAutomationAgent = Target.executableTarget(
+        name: "app-agent",
+        dependencies: [
+            .target(.AppAutomationCore),
+            .target(.AppAutomationAX),
+        ],
+        path: "Sources/AppAutomationAgent",
+        swiftSettings: [
+            .unsafeFlags(["-parse-as-library"])
+        ]
+    )
+
     // MARK: - Macros
 
     static let MachOMacros = Target.macro(
@@ -460,6 +527,15 @@ extension Target {
         ],
         swiftSettings: testSettings
     )
+    
+    static let AppAutomationTests = Target.testTarget(
+        name: "AppAutomationTests",
+        dependencies: [
+            .target(.AppAutomationCore),
+            .target(.AppAutomationAX),
+        ],
+        swiftSettings: testSettings
+    )
 }
 
 let package = Package(
@@ -473,6 +549,11 @@ let package = Package(
         .library(.LLMExplorer),
         .executable(.swift_section),
         .executable(.swift_section_mcp),
+        .executable(.AppAutomationDaemon),
+        .executable(.AppAutomationSafariHelper),
+        .executable(.AppAutomationMessagesHelper),
+        .executable(.AppAutomationCLI),
+        .executable(.AppAutomationAgent),
     ],
     dependencies: dependencies,
     targets: [
@@ -497,6 +578,14 @@ let package = Package(
         .swift_section,
         .SwiftSectionMCPCore,
         .swift_section_mcp,
+        .AppAutomationCore,
+        .AppAutomationAX,
+        .AppAutomationXPC,
+        .AppAutomationDaemon,
+        .AppAutomationSafariHelper,
+        .AppAutomationMessagesHelper,
+        .AppAutomationCLI,
+        .AppAutomationAgent,
         .MachOMacros,
         .MachOTestingSupport,
         .DemanglingTests,
@@ -506,6 +595,7 @@ let package = Package(
         .TypeIndexingTests,
         .SwiftInterfaceTests,
         .SwiftSectionMCPTests,
+        .AppAutomationTests,
     ]
 )
 
